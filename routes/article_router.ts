@@ -1,43 +1,14 @@
 import Router, { RouterContext } from "koa-router";
 import bodyParser from "koa-bodyparser";
+import * as article_model from "../models/article";
 
 // Since we are handling articles use a URI that begins with an appropriate path
 const router = new Router({ prefix: '/api/v1/articles' });
 
-// Temporarily define some random articles in an array.
-// Later this will come from the DB.
-interface Article {
-    id: number;
-    [key: string]: any;
-}
-
-let articles: Article[] = [
-    {
-        id: 1,
-        title: 'hello article',
-        fullText: 'some text here to fill the body'
-    },
-    {
-        id: 2,
-        title: 'another article',
-        fullText: 'again here is some text here to fill'
-    },
-    {
-        id: 3,
-        title: 'coventry university ',
-        fullText: 'some news about coventry university'
-    },
-    {
-        id: 4,
-        title: 'smart campus',
-        fullText: 'smart campus is coming to IVE'
-    }
-];
-
 // Now we define the handler functions
 const getAll = async (ctx: RouterContext, next: any) => {
     // Use the response body to send the articles as JSON.
-    ctx.body = articles;
+    ctx.body = await article_model.getAll()
     await next();
 }
 const getById = async (ctx: RouterContext, next: any) => {
@@ -45,8 +16,10 @@ const getById = async (ctx: RouterContext, next: any) => {
     let id = +ctx.params.id
     // If it exists then return the article as JSON.
     // Otherwise return a 404 Not Found status code
-    if ((id < articles.length + 1) && (id > 0)) {
-        ctx.body = articles[id - 1];
+    const articles = await article_model.getById(id);
+
+    if (Object.keys(articles).length > 0) {
+        ctx.body = articles[0]
     } else {
         ctx.status = 404;
     }
@@ -55,32 +28,25 @@ const getById = async (ctx: RouterContext, next: any) => {
 const createArticle = async (ctx: RouterContext, next: any) => {
     // The body parser gives us access to the request body on ctx.request.body.
     // Use this to extract the title and fullText we were sent.
-    let { title, fullText } = ctx.request.body as { title: string, fullText: string };
+    let { title, alltext } = ctx.request.body as { title: string, alltext: string };
     // In turn, define a new article for addition to the array.
-    let newArticle = { id: articles.length + 1, title: title, fullText: fullText };
-    articles.push(newArticle);
+    let newArticle = { title: title, alltext: alltext };
+    let insertData = await article_model.add(newArticle)
+    let createdArticle = await article_model.getById(insertData.id)
     // Finally send back appropriate JSON and status code.
     // Once we move to a DB store, the newArticle sent back will now have its ID.
     ctx.status = 201;
-    ctx.body = newArticle;
+    ctx.body = createdArticle[0];
     await next();
 }
 const updateArticle = async (ctx: RouterContext, next: any) => {
     //TODO: edit an article
     // Get the ID from the route parameters.
     let id = +ctx.params.id
-    let article = articles.find(x => x.id === id)
-    if (article) {
-        const onChange = (props: string, value: string, id: number) => {
-            const obj = articles.find(x => x.id === id);
-            if (obj) {
-                obj[props] = value;
-            }
-        }
-        let { title, fullText } = ctx.request.body as { title: string, fullText: string };
-        onChange("title", title, id);
-        onChange("fullText", fullText, id);
-
+    let articles = await article_model.getById(id)
+    if (Object.keys(articles).length > 0) {
+        let updateData = ctx.request.body as { title: string, alltext: string };
+        const article = article_model.update(updateData, id);
         ctx.body = article;
         ctx.status = 200;
     } else {
@@ -92,12 +58,12 @@ const updateArticle = async (ctx: RouterContext, next: any) => {
 const deleteArticle = async (ctx: RouterContext, next: any) => {
     //TODO: delete an article
     let id = +ctx.params.id
-    let article = articles.find(x => x.id === id)
+    let articles = await article_model.getById(id)
 
-    if (article) {
-        articles = articles.filter(x => {
-            return x.id != id;
-        })
+    if (Object.keys(articles).length > 0) {
+        await article_model.deleteById(id)
+
+        const articles = await article_model.getAll()
         ctx.body = articles;
         ctx.status = 200;
     } else {

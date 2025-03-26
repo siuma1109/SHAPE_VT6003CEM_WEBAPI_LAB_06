@@ -1,5 +1,10 @@
 import * as db from '../helpers/database';
 
+interface Article {
+    id: number;
+    [key: string]: any;
+}
+
 //get a single article by its id
 export const getById = async (id: any) => {
     let query = "SELECT * FROM articles WHERE ID = ?"
@@ -11,8 +16,8 @@ export const getById = async (id: any) => {
 export const getAll = async () => {
     // TODO: use page, limit, order to give pagination
     let query = "SELECT * FROM articles;"
-    let data = await db.run_query(query, null);
-    return data;
+    const articles = (await db.run_query(query, null))
+    return articles;
 }
 //create a new article in the database
 export const add = async (article: any) => {
@@ -22,11 +27,38 @@ export const add = async (article: any) => {
     let param = '';
     for (let i: number = 0; i < values.length; i++) { param += '?,' }
     param = param.slice(0, -1);
-    let query = `INSERT INTO articles (${key}) VALUES (${param})`;
+    let query = `INSERT INTO articles (${key}) VALUES (${param}) RETURNING id`;
     try {
-        await db.run_insert(query, values);
-        return { status: 201 };
+        const [data, result] = await db.run_insert(query, values);
+        const [article] = data;
+        return article;
     } catch (err: any) {
         return err;
     }
+}
+
+//update article in the database
+export const update = async (article: any, id: number) => {
+    let keys = Object.keys(article);
+    let values = Object.values(article);
+    let key = keys.join(',');
+    let param = '';
+    for (let i: number = 0; i < values.length; i++) { param += `${keys[i]} = ?,` }
+    param = param.slice(0, -1);
+    let query = `UPDATE articles SET ${param} WHERE id = ?`;
+    try {
+        const [data, result] = await db.update_query(query, [...values, id]);
+        const [article] = data;
+        return article;
+    } catch (err: any) {
+        return err;
+    }
+}
+
+//delete a single article by its id
+export const deleteById = async (id: any) => {
+    let query = "DELETE FROM articles WHERE ID = ?"
+    let values = [id]
+    let data = await db.delete_query(query, values);
+    return data;
 }

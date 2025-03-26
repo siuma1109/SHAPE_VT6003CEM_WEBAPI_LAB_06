@@ -1,7 +1,25 @@
 import { Sequelize, QueryTypes } from 'sequelize';
+import { Sequelize as CoreSequelize } from '@sequelize/core';
 import { config } from '../config/db_config';
+import { PostgresDialect } from '@sequelize/postgres';
+import { Article } from '../models/article_model';
 // define an async utility function to get a connection
 // // run an SQL query then end the connection
+
+export const sequelize = new CoreSequelize({
+    dialect: PostgresDialect,
+    database: config.database,
+    user: config.user,
+    password: config.password,
+    host: config.host,
+    port: 5432,
+    ssl: false,
+    clientMinMessages: 'notice',
+    models: [
+        Article
+    ]
+})
+
 export const run_query = async (query: string, values: any, ) => {
     try {
         const sequelize = new Sequelize(`postgres://${config.user}:${config.password}@${config.host}:${config.port}/${config.database}`);

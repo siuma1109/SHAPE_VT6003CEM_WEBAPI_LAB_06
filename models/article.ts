@@ -1,12 +1,15 @@
 import * as db from '../helpers/database';
-
-interface Article {
-    id: number;
-    [key: string]: any;
-}
+import { Article } from './article_model';
 
 //get a single article by its id
 export const getById = async (id: any) => {
+    const article = await Article.findOne({
+        where: {id: id},
+        rejectOnEmpty: true
+    })
+
+    return article
+    
     let query = "SELECT * FROM articles WHERE ID = ?"
     let values = [id]
     let data = await db.run_query(query, values);

@@ -16,13 +16,9 @@ const getById = async (ctx: RouterContext, next: any) => {
     let id = +ctx.params.id
     // If it exists then return the article as JSON.
     // Otherwise return a 404 Not Found status code
-    const articles = await article_model.getById(id);
-
-    if (Object.keys(articles).length > 0) {
-        ctx.body = articles[0]
-    } else {
-        ctx.status = 404;
-    }
+    const article = await article_model.getById(id);
+    ctx.body = article
+    
     await next();
 }
 const createArticle = async (ctx: RouterContext, next: any) => {
